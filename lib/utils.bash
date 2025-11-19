@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-# TODO: Ensure this is the correct GitHub homepage where releases can be downloaded for cliproxyapi.
 GH_REPO="https://github.com/router-for-me/CLIProxyAPI"
 TOOL_NAME="cliproxyapi"
 TOOL_TEST="cli-proxy-api --help"
@@ -31,18 +30,38 @@ list_github_tags() {
 }
 
 list_all_versions() {
-	# TODO: Adapt this. By default we simply list the tag names from GitHub releases.
-	# Change this function if cliproxyapi has other means of determining installable versions.
 	list_github_tags
 }
 
+get_os() {
+	local os
+	os=$(uname -s | tr '[:upper:]' '[:lower:]')
+	case "$os" in
+		linux) echo "linux" ;;
+		darwin) echo "darwin" ;;
+		*) fail "OS $os not supported" ;;
+	esac
+}
+
+get_arch() {
+	local arch
+	arch=$(uname -m)
+	case "$arch" in
+		x86_64) echo "amd64" ;;
+		aarch64|arm64) echo "arm64" ;;
+		*) fail "Architecture $arch not supported" ;;
+	esac
+}
+
 download_release() {
-	local version filename url
+	local version filename url os arch
 	version="$1"
 	filename="$2"
 
-	# TODO: Adapt the release URL convention for cliproxyapi
-	url="$GH_REPO/archive/v${version}.tar.gz"
+	os=$(get_os)
+	arch=$(get_arch)
+
+	url="$GH_REPO/releases/download/v${version}/CLIProxyAPI_${version}_${os}_${arch}.tar.gz"
 
 	echo "* Downloading $TOOL_NAME release $version..."
 	curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -61,8 +80,6 @@ install_version() {
 		mkdir -p "$install_path"
 		cp -r "$ASDF_DOWNLOAD_PATH"/* "$install_path"
 
-		# TODO: Assert cliproxyapi executable exists.
-		local tool_cmd
 		tool_cmd="$(echo "$TOOL_TEST" | cut -d' ' -f1)"
 		test -x "$install_path/$tool_cmd" || fail "Expected $install_path/$tool_cmd to be executable."
 
